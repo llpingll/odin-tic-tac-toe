@@ -26,12 +26,10 @@ const gameBoard = (() => {
 })();
 
 const displayControl = (() => {
-    // Cache DOM
     const $cells = document.querySelectorAll(".board > div");
     const $button = document.querySelector("#restart");
     const $infoElement = document.querySelector("#info");
 
-    // Functions
     const render = () => {
         for (let i = 0; i < gameBoard.getBoard().length; i++) {
             $cells[i].textContent = gameBoard.getBoard()[i];
@@ -50,40 +48,31 @@ const displayControl = (() => {
         $infoElement.textContent = `Player ${activePlayer.getToken()}'s turn`;
     }
 
-    const addCellEvent = () => {
-        $cells.forEach(elem => {
-            elem.addEventListener("click", (e) => {
-                if (gameBoard.getBoard()[e.target.dataset.index] === "") {
-                    gameControl.playRound(e);
-                    render();
-                }
-            });
+    $cells.forEach(elem => {
+        elem.addEventListener("click", (e) => {
+            gameControl.playRound(e);
         });
-    }
-
-    const removeCellEvent = () => {
-        $cells.forEach(elem => {
-            elem.removeEventListener("click", () => {});
-        });
-    }
+    });
 
     $button.addEventListener("click", () => {
         gameControl.resetGame();
         render();
     });
 
-    return {setTurnMessage, addCellEvent, removeCellEvent, setDrawMessage, setWinnerMessage};
+    return {setTurnMessage, setDrawMessage, setWinnerMessage, render};
 
 })();
 
 const gameControl = (() => {
 
-    let _round = 0;
+    let _round = 1;
+    let gameOver = false;
     const _players = [];
     _players.push(Player("X"));
     _players.push(Player("O"));
 
     let _activePlayer = _players[0];
+    displayControl.setTurnMessage(_activePlayer);
 
     const getActivePlayer = () => _activePlayer;
 
@@ -96,6 +85,7 @@ const gameControl = (() => {
         _round = 1;
         _activePlayer = _players[0];
         displayControl.setTurnMessage(_activePlayer);
+        gameOver = false;
     }
 
     const checkForWinner = () => {
@@ -126,33 +116,25 @@ const gameControl = (() => {
     }
 
     const playRound = (e) => {
-        // Run on ititial call
-        if (_round === 0) {
-            displayControl.addCellEvent();
-            displayControl.setTurnMessage(_activePlayer);
-            _round ++;
-            return;
-        }
-        // Run if rounds end
-        if (_round === 9) {
+        if (gameBoard.getBoard()[e.target.dataset.index] === "" && !gameOver) {
             gameBoard.setToken(e);
-            displayControl.removeCellEvent();
-            displayControl.setDrawMessage();
-            return;
+            displayControl.render();
+            if (_round === 9) {
+                gameBoard.setToken(e);
+                displayControl.setDrawMessage();
+                gameOver = true;
+                return;
+            }
+            if (checkForWinner() === true) {
+                displayControl.setWinnerMessage(_activePlayer);
+                gameOver = true;
+            } else {
+                updateActivePlayer();
+                displayControl.setTurnMessage(_activePlayer);
+                _round ++;
+            }
         }
-        // Run if plays available
-        if (checkForWinner() === true) {
-            displayControl.setWinnerMessage(_activePlayer);
-            displayControl.removeCellEvent();
-        }
-        console.log("!");
-        gameBoard.setToken(e);
-        updateActivePlayer();
-        displayControl.setTurnMessage(_activePlayer);
-        _round ++;
     }
 
-    playRound();
-
-    return {getActivePlayer, updateActivePlayer, resetGame, playRound};
+    return {getActivePlayer, resetGame, playRound};
 })();
